@@ -1,0 +1,43 @@
+name: Paper Status Monitor
+
+on:
+  schedule:
+    # 每一小时运行一次 (UTC时间)
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    # 支持手动触发
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Monitor
+        env:
+          EM_USERNAME: ${{ secrets.EM_USERNAME }}
+          EM_PASSWORD: ${{ secrets.EM_PASSWORD }}
+          WECHAT_WEBHOOK: ${{ secrets.WECHAT_WEBHOOK }}
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+          NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}
+          EMAIL_SERVICE: ${{ secrets.EMAIL_SERVICE }}
+        run: node action-monitor.js
+
+      - name: Commit Status Change
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/
+          git commit -m "chore: update status [skip ci]" || echo "No changes to commit"
+          git push

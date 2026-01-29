@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>论文审稿状态监控系统 - Paper Status Monitor</title>
+    <meta name="description" content="实时监控Editorial Manager系统中的论文审稿状态，自动通知状态变化">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-animation"></div>
+    
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon">📝</span>
+                    <h1>论文状态监控系统</h1>
+                </div>
+                <div class="status-indicator" id="monitorStatus">
+                    <span class="status-dot"></span>
+                    <span class="status-text">监控未启动</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主要内容 -->
+        <main class="main-content">
+            <!-- 配置面板 -->
+            <section class="card config-card">
+                <div class="card-header">
+                    <h2>⚙️ 监控配置</h2>
+                    <p class="card-subtitle">设置您的Editorial Manager账号和通知方式</p>
+                </div>
+                
+                <form id="configForm" class="config-form">
+                    <div class="form-section">
+                        <h3>🔐 登录信息</h3>
+                        <div class="form-group">
+                            <label for="username">
+                                <span class="label-icon">📧</span>
+                                Email / 用户名
+                            </label>
+                            <input type="text" id="username" name="username" required placeholder="your.email@example.com">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="password">
+                                <span class="label-icon">🔑</span>
+                                密码
+                            </label>
+                            <input type="password" id="password" name="password" required placeholder="输入您的密码">
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h3>🔔 通知设置</h3>
+                        
+                        <div class="notification-options">
+                            <label class="checkbox-card">
+                                <input type="checkbox" id="emailEnabled" name="emailEnabled">
+                                <div class="checkbox-content">
+                                    <div class="checkbox-header">
+                                        <span class="checkbox-icon">📧</span>
+                                        <span class="checkbox-title">邮件通知</span>
+                                    </div>
+                                    <p class="checkbox-desc">状态变化时发送邮件提醒</p>
+                                </div>
+                                <div class="checkbox-indicator"></div>
+                            </label>
+                            
+                            <label class="checkbox-card">
+                                <input type="checkbox" id="wechatEnabled" name="wechatEnabled">
+                                <div class="checkbox-content">
+                                    <div class="checkbox-header">
+                                        <span class="checkbox-icon">💬</span>
+                                        <span class="checkbox-title">微信通知</span>
+                                    </div>
+                                    <p class="checkbox-desc">通过企业微信接收提醒</p>
+                                </div>
+                                <div class="checkbox-indicator"></div>
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="notificationEmail">
+                                <span class="label-icon">📮</span>
+                                接收通知的邮箱
+                            </label>
+                            <input type="email" id="notificationEmail" name="notificationEmail" placeholder="notification@example.com">
+                            <small>留空则使用环境变量中配置的邮箱</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="testBtn">
+                            <span class="btn-icon">🧪</span>
+                            测试连接
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="startBtn">
+                            <span class="btn-icon">▶️</span>
+                            启动监控
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- 当前状态 -->
+            <section class="card status-card">
+                <div class="card-header">
+                    <h2>📊 当前状态</h2>
+                    <button class="btn btn-small btn-refresh" id="refreshBtn">
+                        <span class="btn-icon">🔄</span>
+                        手动刷新
+                    </button>
+                </div>
+                
+                <div id="currentStatus" class="status-content">
+                    <div class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <p>暂无数据</p>
+                        <small>启动监控或点击"测试连接"查看论文状态</small>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 历史记录 -->
+            <section class="card history-card">
+                <div class="card-header">
+                    <h2>📜 历史记录</h2>
+                    <div class="filter-options">
+                        <select id="historyFilter" class="filter-select">
+                            <option value="all">全部记录</option>
+                            <option value="today">今天</option>
+                            <option value="week">本周</option>
+                            <option value="month">本月</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="historyList" class="history-list">
+                    <div class="empty-state">
+                        <div class="empty-icon">📋</div>
+                        <p>暂无历史记录</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 页脚 -->
+        <footer class="footer">
+            <p>论文状态监控系统 v1.0 | 每小时自动检查一次</p>
+            <p class="footer-note">您的登录信息仅存储在本地，不会上传到任何服务器</p>
+        </footer>
+    </div>
+
+    <!-- 通知弹窗 -->
+    <div id="toast" class="toast"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
