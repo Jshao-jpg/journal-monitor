@@ -23,14 +23,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Restore status cache
+      - name: Cache status
         uses: actions/cache@v3
-        id: status-cache
         with:
           path: data
-          key: paper-status-${{ github.run_id }}
+          key: paper-status-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
-            paper-status-
+            paper-status-${{ runner.os }}-
 
       - name: Create data directory
         run: mkdir -p data
@@ -45,10 +44,3 @@ jobs:
           NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}
           EMAIL_SERVICE: ${{ secrets.EMAIL_SERVICE }}
         run: node action-monitor.js
-
-      - name: Save status cache
-        uses: actions/cache/save@v3
-        if: always()
-        with:
-          path: data
-          key: paper-status-${{ github.run_id }}

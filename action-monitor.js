@@ -32,32 +32,46 @@ async function runAction() {
         // 记录是否是初次运行
         const isFirstRun = !lastStatus;
 
-        // 比较状态 (只比较稿件号和状态，忽略时间戳)
-        const simplifiedCurrent = currentStatus.manuscripts.map(m => ({ id: m.manuscriptId, status: m.status }));
-        const simplifiedLast = lastStatus ? lastStatus.manuscripts.map(m => ({ id: m.manuscriptId, status: m.status })) : [];
-        const hasChanges = lastStatus && JSON.stringify(simplifiedCurrent) !== JSON.stringify(simplifiedLast);
+        // 比较状态 (只比较稿件号和状态，忽略时间戳和空格)
+        const simplifiedCurrent = currentStatus.manuscripts.map(m => ({
+            id: String(m.manuscriptId || '').trim(),
+            status: String(m.status || '').trim()
+        })).sort((a, b) => a.id.localeCompare(b.id));
+
+        const simplifiedLast = lastStatus ? lastStatus.manuscripts.map(m => ({
+            id: String(m.manuscriptId || '').trim(),
+            status: String(m.status || '').trim()
+        })).sort((a, b) => a.id.localeCompare(b.id)) : [];
+
+        const currentStr = JSON.stringify(simplifiedCurrent);
+        const lastStr = JSON.stringify(simplifiedLast);
+        const hasChanges = lastStatus && currentStr !== lastStr;
+
+        if (hasChanges) {
+            console.log('--- 检出状态变化 ---');
+            console.log('之前状态:', lastStr);
+            console.log('当前状态:', currentStr);
+        }
 
         // 强制通知逻辑：每 24 条记录（约24小时）通知一次，或者状态改变时通知
-        // 在 Actions 中我们通过文件计数来实现强制通知
         const counterFile = path.join(historyDir, 'notify_counter.txt');
         let counter = 0;
         if (fs.existsSync(counterFile)) counter = parseInt(fs.readFileSync(counterFile, 'utf8')) || 0;
         counter++;
 
         if (isFirstRun) {
-            console.log('检测到初次运行，记录初始状态（不发送通知）...');
-            // 初次运行不发送通知，只记录状态
+            console.log('检测到初次运行（Cache未命中），保存初始状态，本次静默...');
             counter = 0;
         } else if (hasChanges) {
-            console.log('检测到状态变化，发送通知...');
+            console.log('检测到状态变化，发送立即通知！');
             await sendNotifications(currentStatus, emailEnabled, wechatEnabled);
             counter = 0; // 重置计数
         } else if (counter >= 24) {
-            console.log('状态未变，但已满24小时，发送例行通知...');
+            console.log('状态未变，但已累积24次检查（约24小时），发送例行汇报...');
             await sendNotifications(currentStatus, emailEnabled, wechatEnabled);
             counter = 0;
         } else {
-            console.log(`状态未变，目前计数: ${counter}/24，跳过通知。`);
+            console.log(`状态无变化。检查计数: ${counter}/24，跳过通知。`);
         }
 
         // 保存当前状态和计数
