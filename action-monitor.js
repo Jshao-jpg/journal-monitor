@@ -45,8 +45,8 @@ async function runAction() {
         counter++;
 
         if (isFirstRun) {
-            console.log('检测到初次运行，发送初始状态通知...');
-            await sendNotifications(currentStatus, emailEnabled, wechatEnabled);
+            console.log('检测到初次运行，记录初始状态（不发送通知）...');
+            // 初次运行不发送通知，只记录状态
             counter = 0;
         } else if (hasChanges) {
             console.log('检测到状态变化，发送通知...');

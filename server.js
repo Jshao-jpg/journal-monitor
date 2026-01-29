@@ -137,7 +137,7 @@ async function checkForChanges(currentStatus, previousStatus) {
 // 启动监控
 let monitoringTask = null;
 let lastStatus = null;
-let lastNotificationTime = null; // 记录上次发送通知的时间
+let lastNotificationTime = Date.now(); // 记录上次发送通知的时间，设为当前时间以避免启动即通知
 
 async function startMonitoring(username, password, emailEnabled, wechatEnabled) {
   // 取消之前的任务
