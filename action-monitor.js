@@ -29,8 +29,11 @@ async function runAction() {
             lastStatus = JSON.parse(fs.readFileSync(lastStatusFile, 'utf8'));
         }
 
+        // 记录是否是初次运行
+        const isFirstRun = !lastStatus;
+
         // 比较状态
-        const hasChanges = JSON.stringify(currentStatus.manuscripts) !== JSON.stringify(lastStatus?.manuscripts);
+        const hasChanges = lastStatus && JSON.stringify(currentStatus.manuscripts) !== JSON.stringify(lastStatus.manuscripts);
 
         // 强制通知逻辑：每 24 条记录（约24小时）通知一次，或者状态改变时通知
         // 在 Actions 中我们通过文件计数来实现强制通知
@@ -39,7 +42,11 @@ async function runAction() {
         if (fs.existsSync(counterFile)) counter = parseInt(fs.readFileSync(counterFile, 'utf8')) || 0;
         counter++;
 
-        if (hasChanges) {
+        if (isFirstRun) {
+            console.log('检测到初次运行，发送初始状态通知...');
+            await sendNotifications(currentStatus, emailEnabled, wechatEnabled);
+            counter = 0;
+        } else if (hasChanges) {
             console.log('检测到状态变化，发送通知...');
             await sendNotifications(currentStatus, emailEnabled, wechatEnabled);
             counter = 0; // 重置计数
