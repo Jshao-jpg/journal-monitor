@@ -32,8 +32,10 @@ async function runAction() {
         // 记录是否是初次运行
         const isFirstRun = !lastStatus;
 
-        // 比较状态
-        const hasChanges = lastStatus && JSON.stringify(currentStatus.manuscripts) !== JSON.stringify(lastStatus.manuscripts);
+        // 比较状态 (只比较稿件号和状态，忽略时间戳)
+        const simplifiedCurrent = currentStatus.manuscripts.map(m => ({ id: m.manuscriptId, status: m.status }));
+        const simplifiedLast = lastStatus ? lastStatus.manuscripts.map(m => ({ id: m.manuscriptId, status: m.status })) : [];
+        const hasChanges = lastStatus && JSON.stringify(simplifiedCurrent) !== JSON.stringify(simplifiedLast);
 
         // 强制通知逻辑：每 24 条记录（约24小时）通知一次，或者状态改变时通知
         // 在 Actions 中我们通过文件计数来实现强制通知
