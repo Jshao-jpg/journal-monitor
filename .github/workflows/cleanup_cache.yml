@@ -11,28 +11,32 @@ jobs:
   cleanup:
     runs-on: ubuntu-latest
     steps:
-      - name: Cleanup Caches via API
+      - name: Cleanup All Caches via API
         uses: actions/github-script@v6
         with:
           script: |
-            console.log("正在获取缓存列表...");
-            const caches = await github.rest.actions.getActionsCacheList({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            });
-            
-            if (caches.data.actions_caches.length === 0) {
-              console.log("没有发现任何缓存。");
-              return;
-            }
-
-            console.log(`发现 ${caches.data.actions_caches.length} 个缓存，正在清理...`);
-            for (const cache of caches.data.actions_caches) {
-              console.log(`正在删除: ${cache.key}`);
-              await github.rest.actions.deleteActionsCacheById({
+            let totalDeleted = 0;
+            while (true) {
+              const caches = await github.rest.actions.getActionsCacheList({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                cache_id: cache.id,
+                per_page: 100,
               });
+              
+              const list = caches.data.actions_caches;
+              if (list.length === 0) {
+                console.log(`清理完毕！共删除 ${totalDeleted} 个缓存。`);
+                break;
+              }
+              
+              console.log(`本批发现 ${list.length} 个缓存，正在删除...`);
+              for (const cache of list) {
+                await github.rest.actions.deleteActionsCacheById({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  cache_id: cache.id,
+                });
+                totalDeleted++;
+              }
+              console.log(`已累计删除 ${totalDeleted} 个，继续检查...`);
             }
-            console.log("清理完毕！");
