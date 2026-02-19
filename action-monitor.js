@@ -75,10 +75,19 @@ async function runAction() {
         }
 
         // 保存当前状态和计数
-        fs.writeFileSync(lastStatusFile, JSON.stringify(currentStatus, null, 2));
+        // 安全性增强：在保存到文件和打印日志之前，对论文题目进行脱敏处理
+        const safeStatusForStorage = {
+            ...currentStatus,
+            manuscripts: currentStatus.manuscripts.map(m => ({
+                ...m,
+                title: '*** (Private Title) ***'
+            }))
+        };
+
+        fs.writeFileSync(lastStatusFile, JSON.stringify(safeStatusForStorage, null, 2));
         fs.writeFileSync(counterFile, counter.toString());
 
-        console.log('检查报告:', JSON.stringify(currentStatus, null, 2));
+        console.log('检查报告 (脱敏处理):', JSON.stringify(safeStatusForStorage, null, 2));
 
     } catch (error) {
         console.error('检查过程中出错:', error.message);
