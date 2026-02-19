@@ -3,17 +3,17 @@ name: Cleanup Caches
 on:
   workflow_dispatch: # 手动触发
 
+permissions:
+  actions: write
+  contents: read
+
 jobs:
   cleanup:
     runs-on: ubuntu-latest
     steps:
       - name: Cleanup Caches
         run: |
-          gh extension install actions/gh-actions-cache
-          REPO="${{ github.repository }}"
-          echo "Cleaning up caches for $REPO"
-          
-          # 获取所有缓存列表并删除
-          gh actions-cache delete --all -R $REPO
+          echo "正在尝试清理仓库: ${{ github.repository }} 的所有缓存..."
+          gh cache delete --all
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
