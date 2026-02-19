@@ -11,22 +11,28 @@ jobs:
   cleanup:
     runs-on: ubuntu-latest
     steps:
-      - name: Cleanup Caches
-        run: |
-          echo "正在获取缓存列表..."
-          # 获取所有缓存 ID
-          ids=$(gh cache list --limit 100 --json id --jq '.[].id')
-          
-          if [ -z "$ids" ]; then
-            echo "没有发现任何缓存。"
-            exit 0
-          fi
+      - name: Cleanup Caches via API
+        uses: actions/github-script@v6
+        with:
+          script: |
+            console.log("正在获取缓存列表...");
+            const caches = await github.rest.actions.getActionsCacheList({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            
+            if (caches.data.actions_caches.length === 0) {
+              console.log("没有发现任何缓存。");
+              return;
+            }
 
-          echo "发现缓存，正在逐一删除..."
-          for id in $ids; do
-            echo "正在删除缓存 ID: $id"
-            gh cache delete $id || echo "删除 ID $id 失败，跳过。"
-          done
-          echo "清理任务尝试完成。"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            console.log(`发现 ${caches.data.actions_caches.length} 个缓存，正在清理...`);
+            for (const cache of caches.data.actions_caches) {
+              console.log(`正在删除: ${cache.key}`);
+              await github.rest.actions.deleteActionsCacheById({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                cache_id: cache.id,
+              });
+            }
+            console.log("清理完毕！");
