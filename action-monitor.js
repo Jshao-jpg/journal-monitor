@@ -32,15 +32,18 @@ async function runAction() {
         // 记录是否是初次运行
         const isFirstRun = !lastStatus;
 
+        // 比较函数：去除所有空格并转小写
+        const normalize = (str) => String(str || '').replace(/\s+/g, ' ').trim().toLowerCase();
+
         // 比较状态 (只比较稿件号和状态，忽略时间戳和空格)
         const simplifiedCurrent = currentStatus.manuscripts.map(m => ({
-            id: String(m.manuscriptId || '').trim(),
-            status: String(m.status || '').trim()
+            id: normalize(m.manuscriptId),
+            status: normalize(m.status)
         })).sort((a, b) => a.id.localeCompare(b.id));
 
         const simplifiedLast = lastStatus ? lastStatus.manuscripts.map(m => ({
-            id: String(m.manuscriptId || '').trim(),
-            status: String(m.status || '').trim()
+            id: normalize(m.manuscriptId),
+            status: normalize(m.status)
         })).sort((a, b) => a.id.localeCompare(b.id)) : [];
 
         const currentStr = JSON.stringify(simplifiedCurrent);
@@ -48,30 +51,42 @@ async function runAction() {
         const hasChanges = lastStatus && currentStr !== lastStr;
 
         if (hasChanges) {
-            console.log('--- 检出状态变化 ---');
-            console.log('之前状态:', lastStr);
-            console.log('当前状态:', currentStr);
+            console.log('--- 检测到状态变化 ---');
+            console.log('上一次简要状态:', lastStr);
+            console.log('目前简要状态:', currentStr);
         }
 
-        // 强制通知逻辑：每 24 条记录（约24小时）通知一次，或者状态改变时通知
+        // 状态提醒计数逻辑
         const counterFile = path.join(historyDir, 'notify_counter.txt');
         let counter = 0;
-        if (fs.existsSync(counterFile)) counter = parseInt(fs.readFileSync(counterFile, 'utf8')) || 0;
+        if (fs.existsSync(counterFile)) {
+            const content = fs.readFileSync(counterFile, 'utf8').trim();
+            counter = parseInt(content) || 0;
+        }
         counter++;
 
+        let shouldNotify = false;
+        let notifyReason = '';
+
         if (isFirstRun) {
-            console.log('检测到初次运行（Cache未命中），保存初始状态，本次静默...');
+            shouldNotify = true;
+            notifyReason = '初次运行（或缓存失效），发送初始状态报告';
             counter = 0;
         } else if (hasChanges) {
-            console.log('检测到状态变化，发送立即通知！');
-            await sendNotifications(currentStatus, emailEnabled, wechatEnabled);
+            shouldNotify = true;
+            notifyReason = '检测到稿件状态更新，立即通知';
             counter = 0; // 重置计数
         } else if (counter >= 24) {
-            console.log('状态未变，但已累积24次检查（约24小时），发送例行汇报...');
-            await sendNotifications(currentStatus, emailEnabled, wechatEnabled);
+            shouldNotify = true;
+            notifyReason = '状态稳定，已满 24 小时例行提醒';
             counter = 0;
+        }
+
+        if (shouldNotify) {
+            console.log(`>>> 发送通知: ${notifyReason}`);
+            await sendNotifications(currentStatus, emailEnabled, wechatEnabled);
         } else {
-            console.log(`状态无变化。检查计数: ${counter}/24，跳过通知。`);
+            console.log(`无状态变化。检查计数: ${counter}/24。满足 24 次检查后将再次提醒。`);
         }
 
         // 保存当前状态和计数
